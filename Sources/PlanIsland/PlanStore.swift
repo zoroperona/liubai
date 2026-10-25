@@ -6,6 +6,7 @@ final class PlanStore: ObservableObject {
     @Published var selected: Horizon = .current
     @Published var expanded: Set<UUID> = []
     @Published var dragging: UUID?
+    @Published var showCompleted = false
     @Published var error: String?
     @Published private(set) var canSave = true
     private var undoDocument: PlanDocument?
@@ -21,7 +22,8 @@ final class PlanStore: ObservableObject {
             self.error = "读取计划失败，原文件已保留。请从菜单打开数据文件夹，修复后重新启动。\n\(error.localizedDescription)"
         }
     }
-    var visible: [Plan] { document.plans.filter { $0.horizon == selected } }
+    var visible: [Plan] { document.plans.filter { $0.horizon == selected && !$0.completed } }
+    var completed: [Plan] { document.completedPlans }
     var remaining: Int { document.plans.filter { !$0.completed }.count }
     func count(_ horizon: Horizon) -> Int { document.plans.filter { $0.horizon == horizon && !$0.completed }.count }
 
@@ -42,7 +44,14 @@ final class PlanStore: ObservableObject {
         guard !title.isEmpty else { return }
         commit { $0.plans.append(Plan(title: title, horizon: selected)) }
     }
-    func setMood(_ text: String) { commit { $0.mood = text } }
+    func setMood(_ text: String, highlights: [MoodHighlight] = []) {
+        commit { $0.mood = text; $0.moodHighlights = highlights.filter { $0.isValid(for: text) } }
+    }
+    func setCompleted(_ id: UUID, _ completed: Bool) {
+        commit { $0.setCompleted(id, completed) }
+        expanded.remove(id)
+        dragging = nil
+    }
     func update(_ id: UUID, _ change: (inout Plan) -> Void) {
         commit { doc in
             guard let index = doc.plans.firstIndex(where: { $0.id == id }) else { return }

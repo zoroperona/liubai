@@ -74,15 +74,23 @@ struct PlannerView: View {
         VStack(spacing: 0) {
             header
             title
-            tabs.padding(.horizontal, 22).padding(.bottom, 17)
+            if store.showCompleted {
+                HStack {
+                    Button { store.showCompleted = false } label: { Label("返回计划", systemImage: "chevron.left") }
+                        .buttonStyle(.plain).font(.system(size: 11))
+                    Spacer()
+                    Text("已完成 · 最新在前").font(.system(size: 12, weight: .medium))
+                }.padding(.horizontal, 24).padding(.bottom, 17)
+            } else { tabs.padding(.horizontal, 22).padding(.bottom, 17) }
             HStack {
-                Text(store.selected.subtitle).font(.system(size: 11)).foregroundStyle(ink.opacity(0.5))
+                Text(store.showCompleted ? "每一件完成的小事，都算数。" : store.selected.subtitle).font(.system(size: 11)).foregroundStyle(ink.opacity(0.5))
                 Spacer()
-                Text("\(store.visible.filter(\.completed).count) / \(store.visible.count)")
+                Text(store.showCompleted ? "\(store.completed.count) 件" : "\(store.visible.count) 件待办")
                     .font(.system(size: 10, design: .monospaced)).foregroundStyle(ink.opacity(0.45))
             }.padding(.horizontal, 24).padding(.bottom, 12)
             Rectangle().fill(ink.opacity(0.09)).frame(height: 1).padding(.horizontal, 22)
-            if store.visible.isEmpty { emptyState }
+            if store.showCompleted { completedList }
+            else if store.visible.isEmpty { emptyState }
             else {
                 ScrollView {
                     LazyVStack(spacing: 0) {
@@ -93,7 +101,7 @@ struct PlannerView: View {
                     }.padding(.horizontal, 14).padding(.vertical, 7)
                 }.frame(maxHeight: .infinity)
             }
-            composer
+            if !store.showCompleted { composer }
             footer
         }
         .foregroundStyle(ink)
@@ -103,7 +111,8 @@ struct PlannerView: View {
         .clipShape(RoundedRectangle(cornerRadius: 22))
         .overlay(RoundedRectangle(cornerRadius: 22).strokeBorder(.white.opacity(0.7), lineWidth: 1))
         .onExitCommand {
-            if window.mode == .island { window.collapseIsland() } else { window.showBubble() }
+            if store.showCompleted { store.showCompleted = false }
+            else if window.mode == .island { window.collapseIsland() } else { window.showBubble() }
         }
         .onChange(of: store.selected) { _ in store.dragging = nil }
     }
@@ -137,18 +146,7 @@ struct PlannerView: View {
                 Text(Date(), format: .dateTime.month(.twoDigits).day(.twoDigits))
                     .font(.system(size: 11, design: .monospaced)).foregroundStyle(ink.opacity(0.48))
             }
-            TextField("此刻的心情，写给自己…", text: Binding(
-                get: { store.document.mood },
-                set: { store.setMood($0) }
-            ), axis: .vertical)
-                .textFieldStyle(.plain)
-                .font(.system(size: 12))
-                .foregroundStyle(ink.opacity(0.65))
-                .lineSpacing(3)
-                .lineLimit(1...3)
-                .accessibilityLabel("自己的心情")
-                .help("点击写下心情，自动保存")
-                .disabled(!store.canSave)
+            MoodEditor()
         }.padding(.horizontal, 24).padding(.top, 7).padding(.bottom, 20)
     }
     private var tabs: some View {
@@ -214,7 +212,52 @@ struct PlannerView: View {
                             .font(.system(size: 11)).foregroundStyle(.secondary).lineSpacing(4)
                     }.padding(20).frame(width: 260)
                 }
+            Button { store.showCompleted.toggle(); store.dragging = nil } label: {
+                Label("已完成 \(store.completed.count)", systemImage: "checkmark.circle")
+                    .font(.system(size: 10)).foregroundStyle(store.showCompleted ? moss : ink.opacity(0.55))
+            }.buttonStyle(.plain).help("查看所有分页的已完成任务，最新完成在前")
         }.foregroundStyle(ink.opacity(0.55)).padding(.horizontal, 24).padding(.top, 14).padding(.bottom, 17)
+    }
+    private var completedList: some View {
+        ScrollView {
+            LazyVStack(alignment: .leading, spacing: 0) {
+                if store.completed.isEmpty {
+                    Text("还没有已完成的计划，慢慢来。")
+                        .font(.system(size: 12)).foregroundStyle(.secondary).padding(24)
+                }
+                ForEach(store.completed) { plan in
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: "checkmark.circle.fill").foregroundStyle(moss)
+                            VStack(alignment: .leading, spacing: 5) {
+                                Text(plan.title).font(.system(size: 13)).textSelection(.enabled)
+                                HStack(spacing: 6) {
+                                    Text(plan.horizon.title)
+                                    if let date = plan.completedAt {
+                                        Text(date, format: .dateTime.year().month().day().hour().minute())
+                                    } else { Text("历史完成 · 时间未记录") }
+                                }.font(.system(size: 9)).foregroundStyle(.secondary)
+                            }
+                            Spacer(minLength: 0)
+                            Button("恢复") { store.setCompleted(plan.id, false) }
+                                .buttonStyle(.plain).font(.system(size: 10)).foregroundStyle(moss)
+                                .help("恢复到原来的分页")
+                        }
+                        if !plan.notes.isEmpty || !plan.subtasks.isEmpty {
+                            DisclosureGroup("查看详情") {
+                                VStack(alignment: .leading, spacing: 7) {
+                                    if !plan.notes.isEmpty { Text(plan.notes).textSelection(.enabled) }
+                                    ForEach(plan.subtasks) { task in
+                                        Label(task.title, systemImage: task.completed ? "checkmark.square" : "square")
+                                    }
+                                }.font(.system(size: 11)).frame(maxWidth: .infinity, alignment: .leading).padding(.top, 5)
+                            }.font(.system(size: 10)).foregroundStyle(.secondary).padding(.leading, 25)
+                        }
+                    }.padding(.vertical, 14)
+                    Divider().opacity(0.4)
+                }
+            }.padding(.horizontal, 24)
+        }.frame(maxHeight: .infinity)
     }
     private func addPlan() {
         guard store.canSave else { return }
@@ -240,7 +283,7 @@ struct PlanRow: View {
         VStack(spacing: 0) {
             HStack(alignment: .top, spacing: 9) {
                 handle.padding(.top, 3)
-                Button { store.update(plan.id) { $0.completed.toggle() } } label: {
+                Button { store.setCompleted(plan.id, !plan.completed) } label: {
                     Image(systemName: plan.completed ? "checkmark.circle.fill" : "circle")
                         .font(.system(size: 17, weight: .light)).foregroundStyle(plan.completed ? moss : ink.opacity(0.28))
                 }.buttonStyle(.plain).help(plan.completed ? "标记为未完成" : "完成计划").padding(.top, 1)
