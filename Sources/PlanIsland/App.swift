@@ -68,7 +68,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         verifyBubbleDrag()
         let output = URL(fileURLWithPath: ProcessInfo.processInfo.environment["PLAN_ISLAND_TEST_OUTPUT"] ?? "/tmp/PlanIsland-smoke")
         try? FileManager.default.createDirectory(at: output, withIntermediateDirectories: true)
-        store.setMood("今天慢一点，也没关系。")
+        store.setMood("今天慢一点，也没关系。", highlights: [MoodHighlight(location: 2, length: 3, color: .yellow), MoodHighlight(location: 6, length: 4, color: .green)])
         store.add("整理今天的想法")
         store.add("留半小时，读几页书")
         store.add("散步，看看傍晚的天空")
@@ -86,12 +86,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         store.add("去一个一直想去的地方")
         store.selected = .current
 
+        store.add("完成一次小小的整理")
+        if let item = store.visible.last { store.setCompleted(item.id, true) }
+        verifyMoodHighlights()
         var steps: [(String, () -> Void)] = []
         steps.append(("panel", { self.store.expanded.removeAll(); self.controller.showPanel() }))
         steps.append(("details", {
             if let first = self.store.visible.first { self.store.toggleExpanded(first.id) }
         }))
-        steps.append(("bubble", { self.controller.showBubble() }))
+        steps.append(("completed", { self.store.showCompleted = true }))
+        steps.append(("bubble", { self.store.showCompleted = false; self.controller.showBubble() }))
         steps.append(("island", { self.controller.showIsland() }))
         steps.append(("island-expanded", { self.controller.expandIsland() }))
         steps.append(("panel-restored", { self.controller.showPanel() }))
@@ -100,7 +104,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 do {
                     let restored = try PlanPersistence.read(from: store.url)
                     guard restored == store.document else { throw NSError(domain: "SmokeTest", code: 1) }
-                    try "PASS: click/drag separation; 6 window snapshots captured; fixture persisted and restored.\n".write(to: output.appendingPathComponent("result.txt"), atomically: true, encoding: .utf8)
+                    try "PASS: click/drag separation; 7 window snapshots captured; fixture persisted and restored.\n".write(to: output.appendingPathComponent("result.txt"), atomically: true, encoding: .utf8)
                     try FileManager.default.removeItem(at: store.url.deletingLastPathComponent())
                 } catch { fputs("Smoke test failed: \(error)\n", stderr); exit(1) }
                 NSApp.terminate(nil)
@@ -119,6 +123,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { next(0) }
+    }
+
+    private func verifyMoodHighlights() {
+        let editor = MoodEditing()
+        let view = NSTextView()
+        editor.textView = view
+        view.textStorage?.setAttributedString(MoodEditing.attributed("慢慢来🌿也很好", []))
+        view.setSelectedRange(NSRange(location: 0, length: 3))
+        editor.apply(.yellow)
+        view.setSelectedRange(NSRange(location: 5, length: 3))
+        editor.apply(.blue)
+        let marks = MoodEditing.highlights(in: view.attributedString())
+        guard marks.count == 2, marks[0].color == .yellow, marks[1].color == .blue else { exit(1) }
+        view.textStorage?.insert(NSAttributedString(string: "今天", attributes: MoodEditing.base), at: 0)
+        guard MoodEditing.highlights(in: view.attributedString()).first?.location == 2 else { exit(1) }
+        view.setSelectedRange(NSRange(location: 2, length: 3))
+        editor.apply(nil)
+        guard MoodEditing.highlights(in: view.attributedString()).count == 1 else { exit(1) }
     }
 
     private func verifyBubbleDrag() {

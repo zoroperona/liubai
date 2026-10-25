@@ -2,6 +2,38 @@ import XCTest
 @testable import PlanCore
 
 final class PlanCoreTests: XCTestCase {
+    func testCompletionHistoryAndRecompletion() throws {
+        let a = Plan(title: "A", horizon: .current)
+        let b = Plan(title: "B", horizon: .long)
+        var old = Plan(title: "旧任务", horizon: .medium)
+        old.completed = true
+        var doc = PlanDocument(plans: [a, old, b])
+        doc.setCompleted(a.id, true, at: Date(timeIntervalSince1970: 10))
+        doc.setCompleted(b.id, true, at: Date(timeIntervalSince1970: 20))
+        XCTAssertEqual(doc.completedPlans.map(\.id), [b.id, a.id, old.id])
+        doc.setCompleted(a.id, false)
+        XCTAssertNil(doc.plans[0].completedAt)
+        XCTAssertEqual(doc.completedPlans.map(\.id), [b.id, old.id])
+        doc.setCompleted(a.id, true, at: Date(timeIntervalSince1970: 30))
+        XCTAssertEqual(doc.completedPlans.map(\.id), [a.id, b.id, old.id])
+        XCTAssertFalse(doc.move(a.id, to: b.id))
+        XCTAssertEqual(try JSONDecoder().decode(PlanDocument.self, from: JSONEncoder().encode(doc)), doc)
+    }
+    func testHighlightPersistenceAndLegacyCompletedPlan() throws {
+        var doc = PlanDocument(plans: [Plan(title: "旧计划", horizon: .current)])
+        doc.plans[0].completed = true
+        doc.mood = "中文🌿心情"
+        doc.moodHighlights = [MoodHighlight(location: 2, length: 2, color: .green)]
+        XCTAssertTrue(doc.moodHighlights[0].isValid(for: doc.mood))
+        XCTAssertFalse(MoodHighlight(location: Int.max, length: 2, color: .blue).isValid(for: doc.mood))
+        XCTAssertEqual(try JSONDecoder().decode(PlanDocument.self, from: JSONEncoder().encode(doc)), doc)
+        var legacy = try XCTUnwrap(JSONSerialization.jsonObject(with: JSONEncoder().encode(doc)) as? [String: Any])
+        legacy.removeValue(forKey: "moodHighlights")
+        let decoded = try JSONDecoder().decode(PlanDocument.self, from: JSONSerialization.data(withJSONObject: legacy))
+        XCTAssertTrue(decoded.moodHighlights.isEmpty)
+        XCTAssertTrue(decoded.plans[0].completed)
+        XCTAssertNil(decoded.plans[0].completedAt)
+    }
     func testReorderingPreservesLockedSlotsAndOtherTabs() {
         let a = Plan(title: "A", horizon: .current)
         var locked = Plan(title: "Locked", horizon: .current)
