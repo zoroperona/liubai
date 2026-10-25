@@ -4,7 +4,7 @@
 
 **目前仅支持 macOS 13 及以上，不支持 Windows、Linux、iOS 或 Android。**
 
-[下载最新版](https://github.com/zoroperona/liubai/releases/latest) · [反馈问题](https://github.com/zoroperona/liubai/issues)
+[下载最新版](https://github.com/zoroperona/liubai/releases/latest) · [更新日志](CHANGELOG.md) · [反馈问题](https://github.com/zoroperona/liubai/issues)
 
 ## 看看留白
 
@@ -34,9 +34,9 @@
 
 ## 下载和安装
 
-本文截图与功能说明对应主干源码。多色高亮和已完成归档尚未包含在 `v1.0.0` 下载包中，可从源码构建使用。
+`v1.0.1` 已包含多色高亮和已完成归档，详见 [更新日志](CHANGELOG.md)。
 
-1. 前往 [Releases](https://github.com/zoroperona/liubai/releases/latest)，下载 `Liubai-v1.0.0-macOS-universal.zip`。
+1. 前往 [Releases](https://github.com/zoroperona/liubai/releases/latest)，下载 `Liubai-v1.0.1-macOS-universal.zip`。
 2. 解压后，将 `留白.app` 拖到「应用程序」文件夹，双击打开。
 3. 应用通过菜单栏清单图标常驻，不显示 Dock 图标。
 
