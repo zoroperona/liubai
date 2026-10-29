@@ -68,6 +68,7 @@ struct PlannerView: View {
     @EnvironmentObject var window: WindowController
     @State private var newTitle = ""
     @State private var settings = false
+    @State private var panelHeight: CGFloat = 560
     @FocusState private var adding: Bool
 
     var body: some View {
@@ -104,6 +105,10 @@ struct PlannerView: View {
             if !store.showCompleted { composer }
             footer
         }
+        .background(GeometryReader { geometry in
+            Color.clear.onAppear { panelHeight = geometry.size.height }
+                .onChange(of: geometry.size.height) { panelHeight = $0 }
+        })
         .foregroundStyle(ink)
         .background {
             ZStack { VisualEffect(); paper.opacity(window.opacity) }
@@ -146,7 +151,7 @@ struct PlannerView: View {
                 Text(Date(), format: .dateTime.month(.twoDigits).day(.twoDigits))
                     .font(.system(size: 11, design: .monospaced)).foregroundStyle(ink.opacity(0.48))
             }
-            MoodEditor()
+            MoodEditor(maximumHeight: max(24, min(400, panelHeight - 340)))
         }.padding(.horizontal, 24).padding(.top, 7).padding(.bottom, 20)
     }
     private var tabs: some View {
