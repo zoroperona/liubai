@@ -70,6 +70,13 @@ final class MoodEditing: ObservableObject {
 }
 
 struct MoodEditor: View {
+    var maximumHeight: CGFloat = 220
+    @AppStorage("moodEditorHeight") private var savedHeight: Double = 48
+    @State private var dragStartHeight: CGFloat?
+    @State private var dragHeight: CGFloat?
+    private var editorHeight: CGFloat {
+        min(maximumHeight, max(24, dragHeight ?? CGFloat(savedHeight)))
+    }
     @EnvironmentObject var store: PlanStore
     @StateObject private var editing = MoodEditing()
     var body: some View {
@@ -78,7 +85,7 @@ struct MoodEditor: View {
                 MoodTextView(text: store.document.mood, highlights: store.document.moodHighlights,
                              editable: store.canSave, editing: editing) { text, marks in
                     store.setMood(text, highlights: marks)
-                }.frame(height: 48)
+                }.frame(height: editorHeight)
                 if store.document.mood.isEmpty {
                     Text("此刻的心情，写给自己…").font(.system(size: 12))
                         .foregroundStyle(.secondary).padding(.top, 2).allowsHitTesting(false)
@@ -98,6 +105,31 @@ struct MoodEditor: View {
                 Spacer(minLength: 0)
                 if !editing.hasSelection { Text("先选中文字").font(.system(size: 9)).foregroundStyle(.tertiary) }
             }.disabled(!editing.hasSelection || !store.canSave)
+            Capsule().fill(Color.secondary.opacity(0.3))
+                .frame(width: 34, height: 3)
+                .frame(maxWidth: .infinity).frame(height: 14)
+                .contentShape(Rectangle())
+                .gesture(DragGesture(minimumDistance: 2, coordinateSpace: .global)
+                    .onChanged { value in
+                        if dragStartHeight == nil { dragStartHeight = editorHeight }
+                        dragHeight = min(maximumHeight, max(24, (dragStartHeight ?? editorHeight) + value.translation.height))
+                    }
+                    .onEnded { _ in
+                        savedHeight = Double(editorHeight)
+                        dragStartHeight = nil
+                        dragHeight = nil
+                    })
+                .onTapGesture(count: 2) { savedHeight = 48 }
+                .help("上下拖动调整状态区域高度，双击恢复默认高度")
+                .accessibilityLabel("调整状态区域高度")
+                .accessibilityValue("\(Int(editorHeight)) 点")
+                .accessibilityAdjustableAction { direction in
+                    switch direction {
+                    case .increment: savedHeight = Double(min(maximumHeight, editorHeight + 16))
+                    case .decrement: savedHeight = Double(max(24, editorHeight - 16))
+                    @unknown default: break
+                    }
+                }
         }
     }
 }
