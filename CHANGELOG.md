@@ -1,5 +1,21 @@
 # 更新日志
 
+## [1.0.3] - 2026-11-04
+
+### 修复
+
+- 修复「当前／中期／长期」分页仅点击文字才切换的问题。现在整个按钮区域（包括文字四周的空白）均可点击，键盘快捷键保持不变。
+
+### 升级与兼容
+
+- 退出旧版留白后替换应用即可，已有计划、心情、高亮、完成记录及状态区域高度设置保留，无需迁移。
+- 仅支持 macOS 13 及以上，通用包包含 Apple Silicon 和 Intel 架构；实际运行验证在 Apple Silicon Mac 上完成。
+- 当前仍为 ad-hoc 签名，尚未经过 Apple Developer ID 签名与公证。
+
+### 验证
+
+- 点击区域修复已由用户实际确认；发布前执行核心单元测试、通用包窗口运行检查、版本号及签名校验，并提供 SHA-256 校验文件。
+
 ## [1.0.2] - 2026-10-29
 
 ### 新增
@@ -60,3 +76,5 @@
 [1.0.0]: https://github.com/zoroperona/liubai/releases/tag/v1.0.0
 
 [1.0.2]: https://github.com/zoroperona/liubai/compare/v1.0.1...v1.0.2
+
+[1.0.3]: https://github.com/zoroperona/liubai/compare/v1.0.2...v1.0.3

@@ -34,9 +34,9 @@
 
 ## 下载和安装
 
-`v1.0.2` 新增状态区域高度调节，并包含多色高亮和已完成归档，详见 [更新日志](CHANGELOG.md)。
+`v1.0.3` 修复周期分页按钮的点击范围，点击按钮内的空白区域也能切换；包含状态区域高度调节、多色高亮和已完成归档，详见 [更新日志](CHANGELOG.md)。
 
-1. 前往 [Releases](https://github.com/zoroperona/liubai/releases/latest)，下载 `Liubai-v1.0.2-macOS-universal.zip`。
+1. 前往 [Releases](https://github.com/zoroperona/liubai/releases/latest)，下载 `Liubai-v1.0.3-macOS-universal.zip`。
 2. 解压后，将 `留白.app` 拖到「应用程序」文件夹，双击打开。
 3. 应用通过菜单栏清单图标常驻，不显示 Dock 图标。
 
