@@ -168,6 +168,7 @@ struct PlannerView: View {
                     .background(store.selected == horizon ? Color.white.opacity(0.85) : .clear)
                     .clipShape(RoundedRectangle(cornerRadius: 9))
                     .shadow(color: .black.opacity(store.selected == horizon ? 0.04 : 0), radius: 3, y: 1)
+                    .contentShape(Rectangle())
                 }.buttonStyle(.plain).keyboardShortcut(KeyEquivalent(Character("\(index + 1)")), modifiers: .command)
             }
         }.padding(4).background(ink.opacity(0.055)).clipShape(RoundedRectangle(cornerRadius: 12))
